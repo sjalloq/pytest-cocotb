@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pytest-cocotb"
+version = "0.1.0"
+description = "pytest plugin for cocotb HDL simulation"
+requires-python = ">=3.9"
+dependencies = [
+    "cocotb>=2.0",
+    "pytest>=7.0",
+]
+
+[project.optional-dependencies]
+docs = ["sphinx", "furo"]
+
+[project.entry-points.pytest11]
+pytest_cocotb = "pytest_cocotb.plugin"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pytest_cocotb"]
