@@ -6,13 +6,16 @@ build-backend = "hatchling.build"
 name = "pytest-cocotb"
 version = "0.1.0"
 description = "pytest plugin for cocotb HDL simulation"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
+license = "MIT"
 dependencies = [
     "cocotb>=2.0",
     "pytest>=7.0",
+    "hpc-runner>=0.3.2",
 ]
 
 [project.optional-dependencies]
+dev = ["mypy", "ruff"]
 docs = ["sphinx", "furo"]
 
 [project.entry-points.pytest11]
@@ -20,3 +23,18 @@ pytest_cocotb = "pytest_cocotb.plugin"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pytest_cocotb"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true

@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Shareef Jalloq. MIT License — see LICENSE for details.
+
 import os
 import re
 import shlex
@@ -5,8 +7,9 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-from cocotb_tools.runner import get_runner
+from hpc_runner import get_scheduler
 
+from .runners import get_hpc_runner
 from .session import TestSession
 
 
@@ -14,7 +17,7 @@ def pytest_addoption(parser):
     group = parser.getgroup("cocotb", "cocotb simulation options")
 
     group.addoption(
-        "--sim",
+        "--simulator",
         default=os.environ.get("SIM", "verilator"),
         help="Simulator name (default: $SIM or 'verilator')",
     )
@@ -81,6 +84,12 @@ def pytest_addoption(parser):
         default="sim_build",
         help="Base output directory (default: 'sim_build')",
     )
+    group.addoption(
+        "--modules",
+        action="append",
+        default=[],
+        help="Environment modules to load before simulation (repeatable)",
+    )
 
 
 def _sanitise_name(name: str) -> str:
@@ -112,10 +121,7 @@ def sim_build_dir(request, testrun_uid):
 def build_dir(request, sim_build_dir):
     """Build directory for the compiled HDL."""
     explicit = request.config.getoption("build_dir")
-    if explicit:
-        path = Path(explicit)
-    else:
-        path = sim_build_dir / "build"
+    path = Path(explicit) if explicit else sim_build_dir / "build"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -125,7 +131,7 @@ def runner(request, build_dir):
     """Session-scoped fixture that compiles the HDL design once."""
     config = request.config
 
-    sim = config.getoption("sim")
+    sim = config.getoption("simulator")
     hdl_toplevel = config.getoption("hdl_toplevel")
     hdl_library = config.getoption("hdl_library")
     sources = config.getoption("sources")
@@ -142,12 +148,17 @@ def runner(request, build_dir):
 
     # Handle filelist: prepend -f <path> to build_args
     if filelist:
-        build_args = ["-f", filelist] + build_args
+        build_args = ["-f", filelist, *build_args]
 
     # Build defines dict
     defines_dict = {name: value for name, value in defines}
 
-    runner = get_runner(sim)
+    modules = config.getoption("modules")
+
+    runner_cls = get_hpc_runner(sim)
+    runner = runner_cls()
+    runner.scheduler = get_scheduler()
+    runner.modules = modules
 
     runner.build(
         hdl_toplevel=hdl_toplevel,

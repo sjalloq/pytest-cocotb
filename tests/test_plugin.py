@@ -1,10 +1,13 @@
+# Copyright (c) 2026 Shareef Jalloq. MIT License — see LICENSE for details.
+
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
+from conftest import VERILATOR_MODULE
+from pytest_cocotb.plugin import _sanitise_name
 from pytest_cocotb.session import TestSession
-
 
 # ---------- TestSession.run() single-use guard ----------
 
@@ -57,8 +60,6 @@ class TestTestSession:
 
 # ---------- Name sanitisation ----------
 
-from pytest_cocotb.plugin import _sanitise_name
-
 
 class TestSanitiseName:
     def test_simple_name(self):
@@ -68,7 +69,8 @@ class TestSanitiseName:
         assert _sanitise_name("test_foo[param1-param2]") == "test_foo_param1-param2"
 
     def test_path_separators(self):
-        assert _sanitise_name("tests/test_foo.py::test_bar") == "tests_test_foo.py_test_bar"
+        result = _sanitise_name("tests/test_foo.py::test_bar")
+        assert result == "tests_test_foo.py_test_bar"
 
     def test_collapses_underscores(self):
         assert _sanitise_name("a///b") == "a_b"
@@ -162,10 +164,11 @@ def test_no_rebuild_without_clean(pytester):
     _make_counter_project(pytester)
     build_dir = pytester.path / "build"
     common_args = [
-        "--sim", "verilator",
+        "--simulator", "verilator",
         "--hdl-toplevel", "counter",
         "--sources", str(pytester.path / "rtl" / "counter.sv"),
         "--build-dir", str(build_dir),
+        "--modules", VERILATOR_MODULE,
     ]
 
     # First run: builds and runs
@@ -195,10 +198,11 @@ def test_rebuild_with_clean(pytester):
     _make_counter_project(pytester)
     build_dir = pytester.path / "build"
     common_args = [
-        "--sim", "verilator",
+        "--simulator", "verilator",
         "--hdl-toplevel", "counter",
         "--sources", str(pytester.path / "rtl" / "counter.sv"),
         "--build-dir", str(build_dir),
+        "--modules", VERILATOR_MODULE,
     ]
 
     # First run

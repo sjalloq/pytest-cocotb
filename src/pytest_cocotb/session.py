@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Shareef Jalloq. MIT License — see LICENSE for details.
+
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -23,4 +25,4 @@ class TestSession:
             waves=self.waves,
         )
         defaults.update(kwargs)
-        return self.runner.test(**defaults)
+        return self.runner.test(**defaults)  # type: ignore[attr-defined, no-any-return]

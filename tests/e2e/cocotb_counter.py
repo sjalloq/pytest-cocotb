@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Shareef Jalloq. MIT License — see LICENSE for details.
+
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge
