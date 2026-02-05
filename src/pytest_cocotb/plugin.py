@@ -92,14 +92,24 @@ def pytest_addoption(parser):
     )
 
 
-def _sanitise_name(name: str) -> str:
-    """Sanitise a test node ID into a filesystem-safe directory name."""
-    # Replace path separators and brackets with underscores
-    name = re.sub(r"[/\\:;<>|?*\[\](){}]", "_", name)
-    # Collapse multiple underscores
-    name = re.sub(r"_+", "_", name)
-    # Strip leading/trailing underscores
-    return name.strip("_")
+def _sanitise_name(node_id: str) -> str:
+    """Convert a pytest node ID into a filesystem-safe directory name.
+
+    Format: module__test_name (e.g., test_wb_crossbar__test_run_byte_enables)
+    """
+    # Split nodeid into file path and test name(s)
+    # e.g., "tests/test_foo.py::TestClass::test_method" -> ["tests/test_foo.py", "TestClass", "test_method"]
+    parts = node_id.split("::")
+    file_path = parts[0]
+    test_parts = parts[1:]  # Could be [test_func] or [TestClass, test_method]
+
+    # Extract module name: strip directory and .py extension
+    module = Path(file_path).stem
+
+    # Join test parts (handles TestClass::test_method case)
+    test_name = "_".join(test_parts)
+
+    return f"{module}__{test_name}"
 
 
 @pytest.fixture(scope="session")

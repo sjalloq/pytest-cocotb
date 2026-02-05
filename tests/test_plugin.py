@@ -62,21 +62,24 @@ class TestTestSession:
 
 
 class TestSanitiseName:
-    def test_simple_name(self):
-        assert _sanitise_name("test_foo") == "test_foo"
+    def test_simple_nodeid(self):
+        # Basic: file.py::test_func -> module__test_func
+        assert _sanitise_name("test_foo.py::test_bar") == "test_foo__test_bar"
 
-    def test_parametrize_brackets(self):
-        assert _sanitise_name("test_foo[param1-param2]") == "test_foo_param1-param2"
+    def test_with_directory_path(self):
+        # Directory path is stripped, only module name kept
+        result = _sanitise_name("tests/unit/test_foo.py::test_bar")
+        assert result == "test_foo__test_bar"
 
-    def test_path_separators(self):
-        result = _sanitise_name("tests/test_foo.py::test_bar")
-        assert result == "tests_test_foo.py_test_bar"
+    def test_class_and_method(self):
+        # TestClass::test_method joined with underscore
+        result = _sanitise_name("test_foo.py::TestClass::test_method")
+        assert result == "test_foo__TestClass_test_method"
 
-    def test_collapses_underscores(self):
-        assert _sanitise_name("a///b") == "a_b"
-
-    def test_strips_leading_trailing(self):
-        assert _sanitise_name("[hello]") == "hello"
+    def test_parametrized(self):
+        # Parameterized test preserves brackets in test name
+        result = _sanitise_name("test_foo.py::test_bar[param1-param2]")
+        assert result == "test_foo__test_bar[param1-param2]"
 
 
 # ---------- CLI option registration ----------
