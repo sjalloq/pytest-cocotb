@@ -139,6 +139,7 @@ def runner(request, build_dir):
     includes = config.getoption("includes")
     defines = config.getoption("defines")
     raw_build_args = config.getoption("build_args")
+    waves = config.getoption("waves")
     clean = config.getoption("clean")
 
     # Flatten shlex-split build args
@@ -160,7 +161,9 @@ def runner(request, build_dir):
     runner.scheduler = get_scheduler()
     runner.modules = modules
 
-    runner.build(
+    capturing = config.getoption("capture") != "no"
+
+    build_kwargs = dict(
         hdl_toplevel=hdl_toplevel,
         hdl_library=hdl_library,
         sources=[Path(s) for s in sources],
@@ -169,7 +172,12 @@ def runner(request, build_dir):
         build_args=build_args,
         build_dir=build_dir,
         clean=clean,
+        waves=waves,
     )
+    if capturing:
+        build_kwargs["log_file"] = build_dir / "build.log"
+
+    runner.build(**build_kwargs)
 
     return runner
 
@@ -180,6 +188,8 @@ def test_session(request, runner, sim_build_dir):
     config = request.config
     hdl_toplevel = config.getoption("hdl_toplevel")
     waves = config.getoption("waves")
+
+    capturing = request.config.getoption("capture") != "no"
 
     # Derive test_module from the Python module containing the test
     test_module = request.module.__name__
@@ -196,4 +206,5 @@ def test_session(request, runner, sim_build_dir):
         hdl_toplevel=hdl_toplevel,
         test_module=test_module,
         waves=waves,
+        log_file=test_dir / "sim.log" if capturing else None,
     )

@@ -153,7 +153,7 @@ def _get_build_artifact_mtimes(build_dir):
     """Return a dict of {relative_path: mtime} for all files in build_dir."""
     mtimes = {}
     for p in build_dir.rglob("*"):
-        if p.is_file():
+        if p.is_file() and p.suffix != ".log":
             mtimes[str(p.relative_to(build_dir))] = p.stat().st_mtime
     return mtimes
 

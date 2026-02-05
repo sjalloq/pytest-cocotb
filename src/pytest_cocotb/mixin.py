@@ -16,7 +16,6 @@ from hpc_runner import Job, JobStatus
 if TYPE_CHECKING:
     from hpc_runner.schedulers.base import BaseScheduler
 
-
 _VALID_ENV_KEY = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 
@@ -62,11 +61,19 @@ class HpcExecutorMixin:
 
     scheduler: BaseScheduler | None = None
     job_name: str = "sim"
-    job_output: Path | None = None
     modules: ClassVar[list[str]] = []
 
     def _simulator_in_path(self) -> None:
         """Skip local PATH check -- the simulator is available after module load."""
+
+    def _execute(self, cmds, cwd):
+        """Override to bypass cocotb's file-handle stdout routing.
+
+        The HPC scheduler manages output redirection via Job.stdout
+        (a path string used in the bash script's exec redirect), not
+        via a Python file handle.
+        """
+        self._execute_cmds(cmds, cwd)
 
     def _execute_cmds(
         self,
@@ -81,6 +88,11 @@ class HpcExecutorMixin:
                 "Set runner.scheduler before calling build() or test()."
             )
 
+        # Use self.log_file (set by cocotb build/test) as the Job stdout path.
+        # When None, no redirection — output inherits parent stdout (terminal).
+        log_file = getattr(self, "log_file", None)
+        job_stdout = str(Path(log_file).resolve()) if log_file else None
+
         for cmd in cmds:
             command_str = " ".join(shlex.quote(c) for c in cmd)
 
@@ -94,15 +106,19 @@ class HpcExecutorMixin:
                 env_append=env_append,
                 inherit_env=True,
                 modules=list(self.modules),
-                stdout=str(self.job_output) if self.job_output else None,
+                stdout=job_stdout,
             )
 
             result = job.submit(self.scheduler)
             status = result.wait()
 
             if status != JobStatus.COMPLETED:
-                raise RuntimeError(
+                output = result.read_stdout(tail=50)
+                msg = (
                     f"HPC job {result.job_id} {status.name}\n"
                     f"  workdir: {cwd}\n"
                     f"  command: {command_str}"
                 )
+                if output:
+                    msg += f"\n  output:\n{output}"
+                raise RuntimeError(msg)
