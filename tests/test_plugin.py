@@ -95,6 +95,7 @@ def test_options_registered(pytester):
         "*--waves*",
         "*--clean*",
         "*--sim-build*",
+        "*--regress*",
     ])
 
 
@@ -163,14 +164,15 @@ def _get_build_artifact_mtimes(build_dir):
 
 @pytest.mark.usefixtures("_needs_verilator")
 def test_no_rebuild_without_clean(pytester):
-    """Second run with same --build-dir should not recompile."""
+    """Second run with same sim_build should not recompile."""
     _make_counter_project(pytester)
-    build_dir = pytester.path / "build"
+    sim_build = pytester.path / "sim_build"
+    build_dir = sim_build / "build"
     common_args = [
         "--simulator", "verilator",
         "--hdl-toplevel", "counter",
         "--sources", str(pytester.path / "rtl" / "counter.sv"),
-        "--build-dir", str(build_dir),
+        "--sim-build", str(sim_build),
         "--modules", VERILATOR_MODULE,
     ]
 
@@ -199,12 +201,13 @@ def test_no_rebuild_without_clean(pytester):
 def test_rebuild_with_clean(pytester):
     """--clean should force a full rebuild."""
     _make_counter_project(pytester)
-    build_dir = pytester.path / "build"
+    sim_build = pytester.path / "sim_build"
+    build_dir = sim_build / "build"
     common_args = [
         "--simulator", "verilator",
         "--hdl-toplevel", "counter",
         "--sources", str(pytester.path / "rtl" / "counter.sv"),
-        "--build-dir", str(build_dir),
+        "--sim-build", str(sim_build),
         "--modules", VERILATOR_MODULE,
     ]
 

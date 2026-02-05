@@ -75,14 +75,15 @@ def pytest_addoption(parser):
         help="Force clean rebuild",
     )
     group.addoption(
-        "--build-dir",
-        default=None,
-        help="Explicit build directory (skip timestamped dir)",
-    )
-    group.addoption(
         "--sim-build",
         default="sim_build",
         help="Base output directory (default: 'sim_build')",
+    )
+    group.addoption(
+        "--regress",
+        action="store_true",
+        default=False,
+        help="Create timestamped subdirectory for this run",
     )
     group.addoption(
         "--modules",
@@ -122,7 +123,8 @@ def testrun_uid():
 def sim_build_dir(request, testrun_uid):
     """Base output directory for this test run."""
     base = Path(request.config.getoption("sim_build"))
-    path = base / testrun_uid
+    regress = request.config.getoption("regress")
+    path = base / testrun_uid if regress else base
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -130,8 +132,9 @@ def sim_build_dir(request, testrun_uid):
 @pytest.fixture(scope="session")
 def build_dir(request, sim_build_dir):
     """Build directory for the compiled HDL."""
-    explicit = request.config.getoption("build_dir")
-    path = Path(explicit) if explicit else sim_build_dir / "build"
+    waves = request.config.getoption("waves")
+    subdir = "build_waves" if waves else "build"
+    path = sim_build_dir / subdir
     path.mkdir(parents=True, exist_ok=True)
     return path
 
