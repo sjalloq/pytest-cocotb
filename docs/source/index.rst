@@ -14,3 +14,6 @@ reporting support.
    quickstart
    plugin
    examples
+   hpc
+   nfs
+   developing

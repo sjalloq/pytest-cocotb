@@ -98,7 +98,7 @@ Running
 
 .. code-block:: bash
 
-   pytest --sim verilator --hdl-toplevel counter --sources rtl/counter.sv
+   pytest --simulator verilator --hdl-toplevel counter --sources rtl/counter.sv
 
 Setting defaults
 ----------------
@@ -112,7 +112,7 @@ any of pytest's configuration files.
 .. code-block:: ini
 
    [pytest]
-   addopts = --sim verilator --hdl-toplevel counter --sources rtl/counter.sv
+   addopts = --simulator verilator --hdl-toplevel counter --sources rtl/counter.sv
 
 ``pyproject.toml``
 ~~~~~~~~~~~~~~~~~~
@@ -120,7 +120,7 @@ any of pytest's configuration files.
 .. code-block:: toml
 
    [tool.pytest.ini_options]
-   addopts = "--sim verilator --hdl-toplevel counter --sources rtl/counter.sv"
+   addopts = "--simulator verilator --hdl-toplevel counter --sources rtl/counter.sv"
 
 ``setup.cfg``
 ~~~~~~~~~~~~~
@@ -128,4 +128,4 @@ any of pytest's configuration files.
 .. code-block:: ini
 
    [tool:pytest]
-   addopts = --sim verilator --hdl-toplevel counter --sources rtl/counter.sv
+   addopts = --simulator verilator --hdl-toplevel counter --sources rtl/counter.sv

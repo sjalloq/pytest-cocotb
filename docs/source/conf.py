@@ -1,5 +1,10 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+
 project = "pytest-cocotb"
-copyright = "2025, pytest-cocotb contributors"
+copyright = "2026, pytest-cocotb contributors"
 author = "pytest-cocotb contributors"
 
 extensions = [
