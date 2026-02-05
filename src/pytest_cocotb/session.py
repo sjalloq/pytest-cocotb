@@ -1,7 +1,12 @@
 # Copyright (c) 2026 Shareef Jalloq. MIT License — see LICENSE for details.
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+_MANAGED_KEYS = frozenset({"test_dir", "build_dir"})
 
 
 @dataclass
@@ -19,6 +24,14 @@ class TestSession:
         """Run cocotb test(s) in the simulator. Delegates to runner.test()."""
         if self._has_run:
             raise RuntimeError("run() can only be called once per test")
+
+        conflicts = _MANAGED_KEYS & kwargs.keys()
+        if conflicts:
+            raise ValueError(
+                f"Cannot override fixture-managed keys: {conflicts}. "
+                f"Use CLI options (--sim-build, --waves) to control directories."
+            )
+
         self._has_run = True
         defaults = dict(
             hdl_toplevel=self.hdl_toplevel,
@@ -36,4 +49,9 @@ class TestSession:
                 kwargs["log_file"] = self.directory / lf
 
         defaults.update(kwargs)
+
+        logger.debug("TestSession.run() final arguments:")
+        for k, v in sorted(defaults.items()):
+            logger.debug("  %-20s = %s", k, v)
+
         return self.runner.test(**defaults)  # type: ignore[attr-defined, no-any-return]

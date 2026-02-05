@@ -1,5 +1,6 @@
 # Copyright (c) 2026 Shareef Jalloq. MIT License — see LICENSE for details.
 
+import logging
 import os
 import re
 import shlex
@@ -11,6 +12,8 @@ from hpc_runner import get_scheduler
 
 from .runners import get_hpc_runner
 from .session import TestSession
+
+logger = logging.getLogger(__name__)
 
 
 def pytest_addoption(parser):
@@ -203,6 +206,7 @@ def test_session(request, runner, sim_build_dir):
     waves = config.getoption("waves")
 
     capturing = request.config.getoption("capture") != "no"
+    logger.debug(f"pytest is capturing: {capturing}")
 
     # Derive test_module from the Python module containing the test
     test_module = request.module.__name__

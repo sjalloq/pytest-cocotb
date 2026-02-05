@@ -57,6 +57,16 @@ class TestTestSession:
         call_kwargs = session.runner.test.call_args.kwargs
         assert call_kwargs["waves"] is True
 
+    def test_rejects_test_dir_override(self):
+        session = self._make_session()
+        with pytest.raises(ValueError, match="fixture-managed"):
+            session.run(test_dir="/somewhere/else")
+
+    def test_rejects_build_dir_override(self):
+        session = self._make_session()
+        with pytest.raises(ValueError, match="fixture-managed"):
+            session.run(build_dir="/somewhere/else")
+
 
 # ---------- Name sanitisation ----------
 
