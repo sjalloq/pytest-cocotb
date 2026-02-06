@@ -27,7 +27,7 @@ All options belong to the ``cocotb`` option group.
      - HDL source files (repeatable)
    * - ``--filelist``
      - *None*
-     - Path to ``.f`` filelist; passed as ``-f <path>`` to the simulator
+     - Path to ``.f`` filelist; resolved to absolute and passed as ``-f <path>`` to the simulator
    * - ``--includes``
      - ``[]``
      - Include directories (repeatable)
@@ -37,6 +37,9 @@ All options belong to the ``cocotb`` option group.
    * - ``--build-args``
      - ``[]``
      - Extra build arguments, shlex-split (repeatable)
+   * - ``--parameters NAME VALUE``
+     - ``[]``
+     - HDL parameters as name/value pairs (repeatable); passed to ``runner.build(parameters={...})``
    * - ``--waves``
      - ``False``
      - Enable waveform capture

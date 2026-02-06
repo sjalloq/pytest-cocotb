@@ -37,7 +37,7 @@ def _cocotb_env_diff(env: dict[str, str]) -> tuple[dict[str, str], dict[str, str
             continue  # unchanged
         if old is not None and v.startswith(old + os.pathsep):
             # cocotb appended to this var — extract only the new segment
-            env_append[k] = v[len(old) + len(os.pathsep):]
+            env_append[k] = v[len(old) + len(os.pathsep) :]
         else:
             env_vars[k] = v
 

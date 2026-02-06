@@ -7,7 +7,7 @@ A pytest plugin that integrates [cocotb](https://www.cocotb.org/) HDL simulation
 - **pytest integration** — run cocotb testbenches as regular pytest tests
 - **HPC support** — submit simulation jobs to SGE, SLURM, or local schedulers via [hpc-runner](https://pypi.org/project/hpc-runner/)
 - **NFS-safe coordination** — `mkdir`-based locking for reliable build-once semantics across NFS-mounted xdist workers
-- **CLI options** — `--simulator`, `--hdl-toplevel`, `--sources`, `--waves`, `--clean`, and more
+- **CLI options** — `--simulator`, `--hdl-toplevel`, `--sources`, `--parameters`, `--waves`, `--clean`, and more
 
 ## Installation
 

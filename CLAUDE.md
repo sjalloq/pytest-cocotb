@@ -40,7 +40,7 @@ This is a **pytest plugin** (`pytest-cocotb`) that integrates cocotb HDL simulat
 
 ### Key components
 
-- **`src/pytest_cocotb/plugin.py`** — The pytest plugin entry point. Registers CLI options (`--sim`, `--hdl-toplevel`, `--sources`, `--waves`, `--clean`, etc.) and provides fixtures:
+- **`src/pytest_cocotb/plugin.py`** — The pytest plugin entry point. Registers CLI options (`--sim`, `--hdl-toplevel`, `--sources`, `--parameters`, `--waves`, `--clean`, etc.) and provides fixtures:
   - `runner` (session-scoped) — Compiles HDL once per pytest session using `cocotb_tools.runner.get_runner()`
   - `test_session` (function-scoped) — Yields a `TestSession` bound to a unique per-test directory
   - `build_dir`, `sim_build_dir`, `testrun_uid` — Directory management fixtures

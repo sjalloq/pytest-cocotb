@@ -67,6 +67,22 @@ Pass preprocessor defines as name/value pairs:
    pytest --simulator verilator --hdl-toplevel counter --sources rtl/counter.sv \
        --defines WIDTH 16 --defines DEPTH 32
 
+Using ``--parameters``
+----------------------
+
+Pass HDL parameters (Verilog generics) as name/value pairs.  The plugin
+passes these directly to ``runner.build(parameters={...})``, so the cocotb
+runner formats them correctly for the target simulator (e.g. ``-GNAME=VALUE``
+for Verilator):
+
+.. code-block:: bash
+
+   pytest --simulator verilator --hdl-toplevel counter --sources rtl/counter.sv \
+       --parameters WIDTH 16 --parameters ItcmInitFile firmware.vmem
+
+This is the recommended way to set string parameters.  Unlike ``--build-args``,
+values are not passed through ``shlex.split``, so no quoting issues arise.
+
 Using ``--filelist``
 --------------------
 
@@ -76,7 +92,9 @@ Point at a ``.f`` filelist instead of listing source files individually:
 
    pytest --simulator verilator --hdl-toplevel counter --filelist sources.f
 
-The filelist is passed as ``-f <path>`` to the simulator build command.
+The filelist path is resolved to absolute before being passed as ``-f <path>``
+to the simulator build command, so relative paths in ``pytest.ini`` work
+correctly.
 
 Using ``--includes``
 --------------------

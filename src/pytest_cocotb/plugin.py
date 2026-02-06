@@ -2,7 +2,6 @@
 
 import logging
 import os
-import re
 import shlex
 from datetime import datetime
 from pathlib import Path
@@ -110,7 +109,8 @@ def _sanitise_name(node_id: str) -> str:
     Format: module__test_name (e.g., test_wb_crossbar__test_run_byte_enables)
     """
     # Split nodeid into file path and test name(s)
-    # e.g., "tests/test_foo.py::TestClass::test_method" -> ["tests/test_foo.py", "TestClass", "test_method"]
+    # e.g., "tests/test_foo.py::TestClass::test_method"
+    #     -> ["tests/test_foo.py", "TestClass", "test_method"]
     parts = node_id.split("::")
     file_path = parts[0]
     test_parts = parts[1:]  # Could be [test_func] or [TestClass, test_method]

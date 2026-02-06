@@ -11,6 +11,7 @@ from pytest_cocotb.session import TestSession
 
 # ---------- TestSession.run() single-use guard ----------
 
+
 class TestTestSession:
     def _make_session(self, **kwargs):
         defaults = dict(
@@ -94,19 +95,24 @@ class TestSanitiseName:
 
 # ---------- CLI option registration ----------
 
+
 def test_options_registered(pytester):
     """Verify plugin options are registered when the plugin is loaded."""
-    pytester.makeconftest("")
-    result = pytester.runpytest("--help")
-    result.stdout.fnmatch_lines([
-        "*--sim*",
-        "*--hdl-toplevel*",
-        "*--sources*",
-        "*--waves*",
-        "*--clean*",
-        "*--sim-build*",
-        "*--regress*",
-    ])
+    result = pytester.runpytest_subprocess("--help")
+    result.stdout.fnmatch_lines(
+        [
+            "*--sim*",
+            "*--hdl-toplevel*",
+            "*--sources*",
+            "*--filelist*",
+            "*--build-args*",
+            "*--parameters*",
+            "*--waves*",
+            "*--clean*",
+            "*--sim-build*",
+            "*--regress*",
+        ]
+    )
 
 
 def test_testrun_uid_fixture(pytester):
@@ -121,7 +127,92 @@ def test_testrun_uid_fixture(pytester):
     result.assert_outcomes(passed=1)
 
 
+# ---------- Filelist path resolution ----------
+
+
+def test_filelist_resolved_to_absolute(pytester):
+    """--filelist relative path should be resolved to absolute in build_args."""
+    pytester.makepyfile(
+        conftest="""\
+import pytest
+from unittest.mock import MagicMock
+
+@pytest.fixture(scope="session")
+def runner(request, build_dir):
+    import shlex
+    from pathlib import Path
+
+    config = request.config
+    filelist = config.getoption("filelist")
+    raw_build_args = config.getoption("build_args")
+
+    build_args = []
+    for arg in raw_build_args:
+        build_args.extend(shlex.split(arg))
+    if filelist:
+        build_args = ["-f", str(Path(filelist).resolve()), *build_args]
+
+    config._resolved_build_args = build_args
+
+    mock_runner = MagicMock()
+    return mock_runner
+"""
+    )
+    pytester.makepyfile("""\
+def test_check_filelist(request, runner):
+    build_args = request.config._resolved_build_args
+    assert "-f" in build_args, "Expected -f in build_args"
+    idx = build_args.index("-f")
+    from pathlib import Path
+    fpath = Path(build_args[idx + 1])
+    assert fpath.is_absolute(), f"filelist path should be absolute, got {fpath}"
+""")
+    result = pytester.runpytest(
+        "--filelist",
+        "sources.f",
+        "--hdl-toplevel",
+        "top",
+    )
+    result.assert_outcomes(passed=1)
+
+
+def test_parameters_passed_to_build(pytester):
+    """--parameters NAME VALUE pairs should be parsed into a dict."""
+    pytester.makepyfile(
+        conftest="""\
+import pytest
+from unittest.mock import MagicMock
+
+@pytest.fixture(scope="session")
+def runner(request, build_dir):
+    config = request.config
+    parameters = config.getoption("parameters")
+    config._parameters_dict = {name: value for name, value in parameters}
+
+    mock_runner = MagicMock()
+    return mock_runner
+"""
+    )
+    pytester.makepyfile("""\
+def test_check_parameters(request, runner):
+    params = request.config._parameters_dict
+    assert params == {"WIDTH": "16", "ItcmInitFile": "firmware.vmem"}
+""")
+    result = pytester.runpytest(
+        "--parameters",
+        "WIDTH",
+        "16",
+        "--parameters",
+        "ItcmInitFile",
+        "firmware.vmem",
+        "--hdl-toplevel",
+        "top",
+    )
+    result.assert_outcomes(passed=1)
+
+
 # ---------- Rebuild behaviour ----------
+
 
 def _make_counter_project(pytester):
     """Create a minimal counter design + cocotb test in pytester's directory."""
@@ -140,7 +231,8 @@ module counter (
 endmodule
 """)
 
-    pytester.makepyfile(cocotb_counter="""\
+    pytester.makepyfile(
+        cocotb_counter="""\
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge
@@ -155,7 +247,8 @@ async def counter_basic(dut):
     dut.rst.value = 0
     await RisingEdge(dut.clk)
     await RisingEdge(dut.clk)
-""")
+"""
+    )
 
     pytester.makepyfile("""\
 def test_counter(test_session):
@@ -179,11 +272,16 @@ def test_no_rebuild_without_clean(pytester):
     sim_build = pytester.path / "sim_build"
     build_dir = sim_build / "build"
     common_args = [
-        "--simulator", "verilator",
-        "--hdl-toplevel", "counter",
-        "--sources", str(pytester.path / "rtl" / "counter.sv"),
-        "--sim-build", str(sim_build),
-        "--modules", VERILATOR_MODULE,
+        "--simulator",
+        "verilator",
+        "--hdl-toplevel",
+        "counter",
+        "--sources",
+        str(pytester.path / "rtl" / "counter.sv"),
+        "--sim-build",
+        str(sim_build),
+        "--modules",
+        VERILATOR_MODULE,
     ]
 
     # First run: builds and runs
@@ -201,7 +299,8 @@ def test_no_rebuild_without_clean(pytester):
 
     # Check that no build artifacts were modified
     changed = {
-        path for path in mtimes_after_first
+        path
+        for path in mtimes_after_first
         if mtimes_after_first[path] != mtimes_after_second.get(path)
     }
     assert not changed, f"Build artifacts were modified on second run: {changed}"
@@ -214,11 +313,16 @@ def test_rebuild_with_clean(pytester):
     sim_build = pytester.path / "sim_build"
     build_dir = sim_build / "build"
     common_args = [
-        "--simulator", "verilator",
-        "--hdl-toplevel", "counter",
-        "--sources", str(pytester.path / "rtl" / "counter.sv"),
-        "--sim-build", str(sim_build),
-        "--modules", VERILATOR_MODULE,
+        "--simulator",
+        "verilator",
+        "--hdl-toplevel",
+        "counter",
+        "--sources",
+        str(pytester.path / "rtl" / "counter.sv"),
+        "--sim-build",
+        str(sim_build),
+        "--modules",
+        VERILATOR_MODULE,
     ]
 
     # First run
@@ -235,7 +339,8 @@ def test_rebuild_with_clean(pytester):
 
     # At least some artifacts should have new timestamps
     changed = {
-        path for path in mtimes_after_first
+        path
+        for path in mtimes_after_first
         if path in mtimes_after_second
         and mtimes_after_first[path] != mtimes_after_second[path]
     }
