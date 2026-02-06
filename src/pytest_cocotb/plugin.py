@@ -66,6 +66,14 @@ def pytest_addoption(parser):
         help="Extra build arguments (shlex-split, repeatable)",
     )
     group.addoption(
+        "--parameters",
+        nargs=2,
+        action="append",
+        default=[],
+        metavar=("NAME", "VALUE"),
+        help="HDL parameters as name/value pairs (repeatable)",
+    )
+    group.addoption(
         "--waves",
         action="store_true",
         default=False,
@@ -155,6 +163,7 @@ def runner(request, build_dir):
     includes = config.getoption("includes")
     defines = config.getoption("defines")
     raw_build_args = config.getoption("build_args")
+    parameters = config.getoption("parameters")
     waves = config.getoption("waves")
     clean = config.getoption("clean")
 
@@ -163,12 +172,15 @@ def runner(request, build_dir):
     for arg in raw_build_args:
         build_args.extend(shlex.split(arg))
 
-    # Handle filelist: prepend -f <path> to build_args
+    # Handle filelist: resolve to absolute path and prepend -f <path> to build_args
     if filelist:
-        build_args = ["-f", filelist, *build_args]
+        build_args = ["-f", str(Path(filelist).resolve()), *build_args]
 
     # Build defines dict
     defines_dict = {name: value for name, value in defines}
+
+    # Build parameters dict
+    parameters_dict = {name: value for name, value in parameters}
 
     modules = config.getoption("modules")
 
@@ -185,6 +197,7 @@ def runner(request, build_dir):
         sources=[Path(s) for s in sources],
         includes=[Path(i) for i in includes],
         defines=defines_dict,
+        parameters=parameters_dict,
         build_args=build_args,
         build_dir=build_dir,
         clean=clean,
