@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "pytest-cocotb"
-version = "0.1.0"
+dynamic = ["version"]
 description = "pytest plugin for cocotb HDL simulation"
 requires-python = ">=3.10"
 license = "MIT"
@@ -20,6 +20,12 @@ docs = ["sphinx", "furo"]
 
 [project.entry-points.pytest11]
 pytest_cocotb = "pytest_cocotb.plugin"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/pytest_cocotb/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pytest_cocotb"]

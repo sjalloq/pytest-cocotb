@@ -9,4 +9,5 @@ sim_build/
 *.fst
 *.ghw
 docs/build/
+src/pytest_cocotb/_version.py
 .venv/
