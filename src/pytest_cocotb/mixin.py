@@ -122,7 +122,7 @@ class HpcExecutorMixin:
                 job.env_append,
             )
 
-            result = job.submit()
+            result = job.submit(interactive=(job_stdout is None))
             status = result.wait()
 
             logger.debug("Job %s finished with status %s", result.job_id, status.name)
