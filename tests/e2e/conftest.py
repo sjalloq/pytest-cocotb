@@ -5,7 +5,7 @@ from pathlib import Path
 # Directory containing this conftest
 E2E_DIR = Path(__file__).parent
 
-VERILATOR_MODULE = "verilator/v5.044"
+VERILATOR_MODULE = "verilator"
 
 
 def pytest_configure(config):

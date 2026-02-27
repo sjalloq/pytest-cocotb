@@ -6,7 +6,7 @@ import pytest
 
 pytest_plugins = ["pytester"]
 
-VERILATOR_MODULE = "verilator/v5.044"
+VERILATOR_MODULE = "verilator"
 
 
 @pytest.fixture

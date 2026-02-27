@@ -1,0 +1,15 @@
+#!/bin/bash
+# Usage: source sourceme
+
+VENV_DIR=".venv"
+
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating venv in $VENV_DIR..."
+    uv venv "$VENV_DIR"
+    source "$VENV_DIR/bin/activate"
+    echo "Installing package in dev mode..."
+    uv pip install -e ".[dev]"
+    pre-commit install
+else
+    source "$VENV_DIR/bin/activate"
+fi

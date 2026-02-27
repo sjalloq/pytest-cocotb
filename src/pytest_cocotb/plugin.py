@@ -7,7 +7,6 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-from hpc_runner import get_scheduler
 
 from .runners import get_hpc_runner
 from .session import TestSession
@@ -186,7 +185,6 @@ def runner(request, build_dir):
 
     runner_cls = get_hpc_runner(sim)
     runner = runner_cls()
-    runner.scheduler = get_scheduler()
     runner.modules = modules
 
     capturing = config.getoption("capture") != "no"
@@ -206,6 +204,7 @@ def runner(request, build_dir):
     if capturing:
         build_kwargs["log_file"] = build_dir / "build.log"
 
+    logger.debug("runner.build() kwargs: %s", build_kwargs)
     runner.build(**build_kwargs)
 
     return runner

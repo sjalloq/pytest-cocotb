@@ -4,17 +4,17 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import shlex
 from collections.abc import Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar, TextIO
+from typing import Any, ClassVar, TextIO
 
 from hpc_runner import Job, JobStatus
 
-if TYPE_CHECKING:
-    from hpc_runner.schedulers.base import BaseScheduler
+logger = logging.getLogger(__name__)
 
 _VALID_ENV_KEY = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
@@ -53,13 +53,12 @@ class HpcExecutorMixin:
         class HpcXcelium(HpcExecutorMixin, Xcelium):
             pass
 
-    All commands (build and test) are submitted through the configured
-    scheduler.  The ``local`` scheduler runs jobs as subprocesses with
-    module-loading support; cluster schedulers (SGE, SLURM) submit to
-    the grid.
+    All commands (build and test) are submitted through hpc-runner's
+    auto-detected scheduler.  The ``local`` scheduler runs jobs as
+    subprocesses with module-loading support; cluster schedulers
+    (SGE, SLURM) submit to the grid.
     """
 
-    scheduler: BaseScheduler | None = None
     job_name: str = "sim"
     modules: ClassVar[list[str]] = []
 
@@ -82,12 +81,6 @@ class HpcExecutorMixin:
         stdout: TextIO | None = None,
     ) -> None:
         """Submit commands to the scheduler instead of running locally."""
-        if self.scheduler is None:
-            raise RuntimeError(
-                "HpcExecutorMixin requires a scheduler. "
-                "Set runner.scheduler before calling build() or test()."
-            )
-
         # Use self.log_file (set by cocotb build/test) as the Job stdout path.
         # When None, no redirection — output inherits parent stdout (terminal).
         log_file = getattr(self, "log_file", None)
@@ -98,19 +91,41 @@ class HpcExecutorMixin:
 
             env_vars, env_append = _cocotb_env_diff(self.env)  # type: ignore[attr-defined]
 
-            job = Job(
+            # Only pass non-empty kwargs so hpc-runner's config defaults
+            # (tool-detected modules, config env_vars, etc.) are preserved.
+            job_kwargs: dict[str, Any] = dict(
                 command=command_str,
                 name=self.job_name,
                 workdir=str(cwd),
-                env_vars=env_vars,
-                env_append=env_append,
-                inherit_env=True,
-                modules=list(self.modules),
-                stdout=job_stdout,
+            )
+            if self.modules:
+                job_kwargs["modules"] = list(self.modules)
+            if job_stdout:
+                job_kwargs["stdout"] = job_stdout
+
+            logger.debug("Creating Job with kwargs: %s", job_kwargs)
+
+            job = Job(**job_kwargs)
+
+            # Merge cocotb env changes *on top of* config-derived values
+            # so that hpc-runner config (e.g. [defaults.env_vars]) is preserved.
+            if env_vars:
+                job.env_vars.update(env_vars)
+            if env_append:
+                job.env_append.update(env_append)
+
+            logger.debug(
+                "Job %r resolved — modules=%s, env_vars=%s, env_append=%s",
+                job.name,
+                job.modules,
+                job.env_vars,
+                job.env_append,
             )
 
-            result = job.submit(self.scheduler)
+            result = job.submit()
             status = result.wait()
+
+            logger.debug("Job %s finished with status %s", result.job_id, status.name)
 
             if status != JobStatus.COMPLETED:
                 output = result.read_stdout(tail=50)

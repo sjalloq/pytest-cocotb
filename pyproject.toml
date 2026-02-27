@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["mypy", "ruff"]
+dev = ["mypy", "ruff", "pre-commit"]
 docs = ["sphinx", "furo"]
 
 [project.entry-points.pytest11]
@@ -33,7 +33,7 @@ src = ["src", "tests"]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
-norecursedirs = ["third_party"]
+norecursedirs = ["third_party", "external"]
 
 [tool.mypy]
 python_version = "3.10"
