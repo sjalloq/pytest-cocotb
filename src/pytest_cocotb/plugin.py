@@ -100,6 +100,66 @@ def pytest_addoption(parser):
         default=[],
         help="Environment modules to load before simulation (repeatable)",
     )
+    group.addoption(
+        "--hdl-toplevel-lang",
+        default=None,
+        help="HDL toplevel language (e.g. 'verilog', 'vhdl')",
+    )
+    group.addoption(
+        "--timescale",
+        default=None,
+        help="Simulation timescale (e.g. '1ns/1ps')",
+    )
+    group.addoption(
+        "--verbose-sim",
+        action="store_true",
+        default=False,
+        help="Enable verbose simulator output",
+    )
+    group.addoption(
+        "--gui",
+        action="store_true",
+        default=False,
+        help="Open simulator GUI",
+    )
+    group.addoption(
+        "--test-args",
+        action="append",
+        default=[],
+        help="Extra test arguments (shlex-split, repeatable)",
+    )
+    group.addoption(
+        "--plusargs",
+        action="append",
+        default=[],
+        help="Simulator plusargs (repeatable)",
+    )
+    group.addoption(
+        "--extra-env",
+        action="append",
+        default=[],
+        help="Extra environment variables as KEY=VAL (repeatable)",
+    )
+    group.addoption(
+        "--seed",
+        default=None,
+        help="Random seed for simulation",
+    )
+    group.addoption(
+        "--testcase",
+        default=None,
+        help="cocotb testcase filter",
+    )
+    group.addoption(
+        "--test-filter",
+        default=None,
+        help="cocotb test filter regex",
+    )
+    group.addoption(
+        "--results-xml",
+        default=None,
+        help="Path for cocotb results XML file",
+    )
 
 
 def _sanitise_name(node_id: str) -> str:
@@ -165,6 +225,17 @@ def runner(request, build_dir):
     parameters = config.getoption("parameters")
     waves = config.getoption("waves")
     clean = config.getoption("clean")
+    timescale_raw = config.getoption("timescale")
+    verbose_sim = config.getoption("verbose_sim")
+
+    # Parse timescale "1ns/1ps" -> ("1ns", "1ps")
+    timescale = None
+    if timescale_raw:
+        parts = timescale_raw.split("/")
+        if len(parts) == 2:
+            timescale = (parts[0].strip(), parts[1].strip())
+        else:
+            timescale = (parts[0].strip(),)
 
     # Flatten shlex-split build args
     build_args = []
@@ -201,6 +272,10 @@ def runner(request, build_dir):
         clean=clean,
         waves=waves,
     )
+    if timescale is not None:
+        build_kwargs["timescale"] = timescale
+    if verbose_sim:
+        build_kwargs["verbose"] = verbose_sim
     if capturing:
         build_kwargs["log_file"] = build_dir / "build.log"
 
@@ -216,6 +291,27 @@ def test_session(request, runner, sim_build_dir):
     config = request.config
     hdl_toplevel = config.getoption("hdl_toplevel")
     waves = config.getoption("waves")
+    hdl_toplevel_lang = config.getoption("hdl_toplevel_lang")
+    verbose_sim = config.getoption("verbose_sim")
+    gui = config.getoption("gui")
+    raw_test_args = config.getoption("test_args")
+    plusargs = config.getoption("plusargs")
+    raw_extra_env = config.getoption("extra_env")
+    seed = config.getoption("seed")
+    testcase = config.getoption("testcase")
+    test_filter = config.getoption("test_filter")
+    results_xml = config.getoption("results_xml")
+
+    # Parse test_args (shlex-split each entry)
+    test_args = []
+    for arg in raw_test_args:
+        test_args.extend(shlex.split(arg))
+
+    # Parse extra_env KEY=VAL entries
+    extra_env = {}
+    for entry in raw_extra_env:
+        key, _, val = entry.partition("=")
+        extra_env[key] = val
 
     capturing = request.config.getoption("capture") != "no"
     logger.debug(f"pytest is capturing: {capturing}")
@@ -236,4 +332,14 @@ def test_session(request, runner, sim_build_dir):
         test_module=test_module,
         waves=waves,
         log_file=test_dir / "sim.log" if capturing else None,
+        hdl_toplevel_lang=hdl_toplevel_lang,
+        verbose=verbose_sim,
+        gui=gui,
+        test_args=test_args,
+        plusargs=plusargs,
+        extra_env=extra_env,
+        seed=seed,
+        testcase=testcase,
+        test_filter=test_filter,
+        results_xml=results_xml,
     )

@@ -32,6 +32,11 @@ class HpcIcarus(HpcExecutorMixin, Icarus):  # type: ignore[misc]
 class HpcXcelium(HpcExecutorMixin, Xcelium):  # type: ignore[misc]
     """Xcelium runner with HPC job submission."""
 
+    def build(self, **kwargs):
+        # Xcelium doesn't support waves in the build step; it's test-time only.
+        kwargs.pop("waves", None)
+        return super().build(**kwargs)
+
 
 class HpcVcs(HpcExecutorMixin, Vcs):  # type: ignore[misc]
     """VCS runner with HPC job submission."""

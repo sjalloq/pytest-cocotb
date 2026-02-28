@@ -68,6 +68,103 @@ class TestTestSession:
         with pytest.raises(ValueError, match="fixture-managed"):
             session.run(build_dir="/somewhere/else")
 
+    def test_hdl_toplevel_lang_passed_through(self):
+        session = self._make_session(hdl_toplevel_lang="verilog")
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert call_kwargs["hdl_toplevel_lang"] == "verilog"
+
+    def test_hdl_toplevel_lang_omitted_when_none(self):
+        session = self._make_session()
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert "hdl_toplevel_lang" not in call_kwargs
+
+    def test_verbose_passed_through(self):
+        session = self._make_session(verbose=True)
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert call_kwargs["verbose"] is True
+
+    def test_verbose_omitted_when_false(self):
+        session = self._make_session()
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert "verbose" not in call_kwargs
+
+    def test_gui_passed_through(self):
+        session = self._make_session(gui=True)
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert call_kwargs["gui"] is True
+
+    def test_test_args_passed_through(self):
+        session = self._make_session(test_args=["--foo", "--bar"])
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert call_kwargs["test_args"] == ["--foo", "--bar"]
+
+    def test_test_args_omitted_when_empty(self):
+        session = self._make_session()
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert "test_args" not in call_kwargs
+
+    def test_plusargs_passed_through(self):
+        session = self._make_session(plusargs=["+foo", "+bar"])
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert call_kwargs["plusargs"] == ["+foo", "+bar"]
+
+    def test_extra_env_passed_through(self):
+        session = self._make_session(extra_env={"KEY": "VAL"})
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert call_kwargs["extra_env"] == {"KEY": "VAL"}
+
+    def test_extra_env_omitted_when_empty(self):
+        session = self._make_session()
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert "extra_env" not in call_kwargs
+
+    def test_seed_passed_through(self):
+        session = self._make_session(seed="12345")
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert call_kwargs["seed"] == "12345"
+
+    def test_seed_omitted_when_none(self):
+        session = self._make_session()
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert "seed" not in call_kwargs
+
+    def test_testcase_passed_through(self):
+        session = self._make_session(testcase="my_test")
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert call_kwargs["testcase"] == "my_test"
+
+    def test_test_filter_passed_through(self):
+        session = self._make_session(test_filter="test_.*")
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert call_kwargs["test_filter"] == "test_.*"
+
+    def test_results_xml_passed_through(self):
+        session = self._make_session(results_xml="results.xml")
+        session.run()
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert call_kwargs["results_xml"] == "results.xml"
+
+    def test_kwargs_override_new_fields(self):
+        session = self._make_session(seed="111", testcase="default_test")
+        session.run(seed="999", testcase="override_test")
+        call_kwargs = session.runner.test.call_args.kwargs
+        assert call_kwargs["seed"] == "999"
+        assert call_kwargs["testcase"] == "override_test"
+
 
 # ---------- Name sanitisation ----------
 
@@ -93,6 +190,37 @@ class TestSanitiseName:
         assert result == "test_foo__test_bar[param1-param2]"
 
 
+# ---------- Timescale parsing ----------
+
+
+class TestTimescaleParsing:
+    """Test the timescale string parsing in the runner fixture."""
+
+    def test_timescale_split(self):
+        """'1ns/1ps' should parse to ('1ns', '1ps') tuple."""
+        raw = "1ns/1ps"
+        parts = raw.split("/")
+        result = (parts[0].strip(), parts[1].strip())
+        assert result == ("1ns", "1ps")
+
+    def test_timescale_with_spaces(self):
+        """'1ns / 1ps' should parse to ('1ns', '1ps') tuple."""
+        raw = "1ns / 1ps"
+        parts = raw.split("/")
+        result = (parts[0].strip(), parts[1].strip())
+        assert result == ("1ns", "1ps")
+
+    def test_timescale_single_value(self):
+        """'1ns' with no slash should produce single-element tuple."""
+        raw = "1ns"
+        parts = raw.split("/")
+        if len(parts) == 2:
+            result = (parts[0].strip(), parts[1].strip())
+        else:
+            result = (parts[0].strip(),)
+        assert result == ("1ns",)
+
+
 # ---------- CLI option registration ----------
 
 
@@ -111,6 +239,17 @@ def test_options_registered(pytester):
             "*--clean*",
             "*--sim-build*",
             "*--regress*",
+            "*--hdl-toplevel-lang*",
+            "*--timescale*",
+            "*--verbose-sim*",
+            "*--gui*",
+            "*--test-args*",
+            "*--plusargs*",
+            "*--extra-env*",
+            "*--seed*",
+            "*--testcase*",
+            "*--test-filter*",
+            "*--results-xml*",
         ]
     )
 
