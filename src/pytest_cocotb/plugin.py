@@ -183,6 +183,11 @@ def _sanitise_name(node_id: str) -> str:
     return f"{module}__{test_name}"
 
 
+def _variant_name(waves: bool) -> str:
+    """Return the build-variant subdirectory name."""
+    return "build_waves" if waves else "build"
+
+
 @pytest.fixture(scope="session")
 def testrun_uid():
     """Timestamp string identifying this pytest invocation."""
@@ -203,7 +208,7 @@ def sim_build_dir(request, testrun_uid):
 def build_dir(request, sim_build_dir):
     """Build directory for the compiled HDL."""
     waves = request.config.getoption("waves")
-    subdir = "build_waves" if waves else "build"
+    subdir = _variant_name(waves)
     path = sim_build_dir / subdir
     path.mkdir(parents=True, exist_ok=True)
     return path
@@ -322,8 +327,15 @@ def test_session(request, runner, sim_build_dir):
     # Build a unique directory name from the test node ID
     node_id = request.node.nodeid
     safe_name = _sanitise_name(node_id)
-    test_dir = sim_build_dir / safe_name
+    variant = _variant_name(waves)
+    test_dir = sim_build_dir / safe_name / variant
     test_dir.mkdir(parents=True, exist_ok=True)
+
+    sim = config.getoption("simulator")
+    if sim.lower() == "xcelium":
+        tmpdir = test_dir / "tmp"
+        tmpdir.mkdir(parents=True, exist_ok=True)
+        test_args.extend(["-cds_implicit_tmpdir", str(tmpdir)])
 
     yield TestSession(
         runner=runner,

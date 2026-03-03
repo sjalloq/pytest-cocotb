@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from conftest import VERILATOR_MODULE
-from pytest_cocotb.plugin import _sanitise_name
+from pytest_cocotb.plugin import _sanitise_name, _variant_name
 from pytest_cocotb.session import TestSession
 
 # ---------- TestSession.run() single-use guard ----------
@@ -188,6 +188,17 @@ class TestSanitiseName:
         # Parameterized test preserves brackets in test name
         result = _sanitise_name("test_foo.py::test_bar[param1-param2]")
         assert result == "test_foo__test_bar[param1-param2]"
+
+
+# ---------- Variant name ----------
+
+
+class TestVariantName:
+    def test_no_waves(self):
+        assert _variant_name(False) == "build"
+
+    def test_waves(self):
+        assert _variant_name(True) == "build_waves"
 
 
 # ---------- Timescale parsing ----------
@@ -484,3 +495,65 @@ def test_rebuild_with_clean(pytester):
         and mtimes_after_first[path] != mtimes_after_second[path]
     }
     assert changed, "Expected build artifacts to be rebuilt with --clean"
+
+
+# ---------- Variant-nested test directories ----------
+
+
+_VARIANT_CONFTEST = """\
+import pytest
+from unittest.mock import MagicMock
+
+@pytest.fixture(scope="session")
+def runner(request, build_dir):
+    return MagicMock()
+"""
+
+
+def test_test_dir_includes_variant(pytester):
+    """test_session.directory should end with .../build when waves is off."""
+    pytester.makepyfile(conftest=_VARIANT_CONFTEST)
+    pytester.makepyfile("""\
+def test_check_variant(test_session):
+    assert test_session.directory.name == "build"
+""")
+    result = pytester.runpytest("--hdl-toplevel", "top")
+    result.assert_outcomes(passed=1)
+
+
+def test_test_dir_includes_variant_waves(pytester):
+    """test_session.directory should end with .../build_waves with --waves."""
+    pytester.makepyfile(conftest=_VARIANT_CONFTEST)
+    pytester.makepyfile("""\
+def test_check_variant(test_session):
+    assert test_session.directory.name == "build_waves"
+""")
+    result = pytester.runpytest("--hdl-toplevel", "top", "--waves")
+    result.assert_outcomes(passed=1)
+
+
+def test_xcelium_tmpdir_injected(pytester):
+    """With --simulator xcelium, test_args should contain -cds_implicit_tmpdir."""
+    pytester.makepyfile(conftest=_VARIANT_CONFTEST)
+    pytester.makepyfile("""\
+def test_check_tmpdir(test_session):
+    assert "-cds_implicit_tmpdir" in test_session.test_args
+    idx = test_session.test_args.index("-cds_implicit_tmpdir")
+    from pathlib import Path
+    tmpdir = Path(test_session.test_args[idx + 1])
+    assert tmpdir.exists()
+    assert tmpdir.name == "tmp"
+""")
+    result = pytester.runpytest("--hdl-toplevel", "top", "--simulator", "xcelium")
+    result.assert_outcomes(passed=1)
+
+
+def test_non_xcelium_no_tmpdir(pytester):
+    """With --simulator verilator, test_args should NOT contain -cds_implicit_tmpdir."""
+    pytester.makepyfile(conftest=_VARIANT_CONFTEST)
+    pytester.makepyfile("""\
+def test_check_no_tmpdir(test_session):
+    assert "-cds_implicit_tmpdir" not in test_session.test_args
+""")
+    result = pytester.runpytest("--hdl-toplevel", "top", "--simulator", "verilator")
+    result.assert_outcomes(passed=1)
